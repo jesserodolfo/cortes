@@ -5,12 +5,12 @@ Uso: exporta.py PASTA --aprovados 1,3,4 [--sem-kit]
 
 Para cada corte aprovado (número da tabela em cortes.md):
   1. recorta o trecho da fonte (re-encode, corte exato no tempo da palavra)
-  2. kit recorte.swift   -> vertical 9:16 seguindo o rosto
-  3. kit caps3.py        -> legenda em caixa (palavras com tempo relativo ao corte)
+  2. recorte.py (+ rosto.swift) -> vertical 9:16 seguindo o rosto
+  3. legenda.py (+ kit caps3.py) -> legenda em caixa (palavras com tempo relativo ao corte)
   4. codificação final única (1080x1920, 30 fps, H.264, AAC, -14 LUFS, faststart)
   5. copia para reels/, shorts/, tiktok/ com o texto de postagem de cada rede
 
---sem-kit só serve pra testar o encadeamento sem o kit: corte central, sem legenda.
+--sem-kit só serve pra testar o encadeamento sem Swift e sem o kit: corte central, sem legenda.
 """
 import argparse
 import re
@@ -19,10 +19,11 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from comum import comando_kit, gravar_json, ler_json, rodar
+from comum import gravar_json, ler_json, rodar
+from legenda import legendar
+from recorte import recortar
 
 LARG, ALT, FPS = 1080, 1920, 30
-POSICAO_Y = 0.62  # centro da legenda em fração da altura: acima da UI de baixo das 3 redes
 
 PLATAFORMAS = {
     # nome: (limite de caracteres do texto, hashtags extras)
@@ -80,9 +81,8 @@ def exportar(pasta, corte, palavras, sem_kit):
         legendado = trecho  # final() já faz o corte central 9:16
     else:
         vertical, legendado = tmp / "2-vertical.mp4", tmp / "3-legendado.mp4"
-        campos = {"palavras": pal, "posicao_y": POSICAO_Y}
-        rodar(comando_kit("recorte", entrada=trecho, saida=vertical, **campos))
-        rodar(comando_kit("legenda", entrada=vertical, saida=legendado, **campos))
+        recortar(trecho, vertical)
+        legendar(vertical, pal, legendado)
 
     mestre = destino / "final.mp4"
     final(legendado, mestre)
