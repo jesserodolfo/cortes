@@ -10,5 +10,11 @@ fi
 ln -sfn "$origem" "$destino"
 echo "ok: $destino -> $origem"
 for f in yt-dlp ffmpeg ffprobe swift; do command -v "$f" >/dev/null || echo "falta: $f"; done
+py="${CORTES_PY:-$HOME/.cache/editar-reels-venv/bin/python}"
+if [ -x "$py" ]; then
+  "$py" -c "import mlx_whisper" 2>/dev/null || echo "falta: mlx_whisper no venv ($py)"
+else
+  echo "falta: python do venv do kit ($py)"
+fi
 kit="${CORTES_KIT:-$HOME/.claude/skills/editar-reels/kit}"
-for f in transcreve.py base.py caps3.py recorte.swift; do [ -f "$kit/$f" ] || echo "falta no kit: $kit/$f"; done
+[ -f "$kit/caps3.py" ] || echo "falta no kit: $kit/caps3.py"

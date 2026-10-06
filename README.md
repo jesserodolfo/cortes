@@ -14,8 +14,9 @@ brew install yt-dlp ffmpeg
 ./install.sh
 ```
 
-Depois, no Claude Code: `/cortes <link>`. Na primeira vez a skill confere o kit
-`~/.claude/skills/editar-reels/kit` e ajusta `skill/cortes/kit.json`.
+Depois, no Claude Code: `/cortes <link>`. Usa o venv `~/.cache/editar-reels-venv`
+(mlx_whisper) e o `caps3.py` do kit `~/.claude/skills/editar-reels/kit`, sem editar o kit.
+O `install.sh` avisa o que faltar.
 
 ## Testes
 

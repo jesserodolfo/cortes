@@ -8,9 +8,8 @@ description: Transforma um episódio longo (link do YouTube, podcast em vídeo o
 Do link ao corte aprovado. Decisões e motivos: `docs/decisoes/2026-10-06-skill-cortes.md`
 no repositório `cortes`.
 
-Pasta da skill: `~/.claude/skills/cortes` (abaixo, `$S`). Kit reaproveitado:
-`$CORTES_KIT`, padrão `~/.claude/skills/editar-reels/kit` (`transcreve.py`, `base.py`,
-`caps3.py`, `recorte.swift`). Trabalho de cada episódio: `~/Cortes/<slug-do-episodio>/` (abaixo, `$P`).
+Pasta da skill: `~/.claude/skills/cortes` (abaixo, `$S`). Trabalho de cada episódio:
+`~/Cortes/<slug-do-episodio>/` (abaixo, `$P`).
 
 ## Regras
 
@@ -19,25 +18,26 @@ Pasta da skill: `~/.claude/skills/cortes` (abaixo, `$S`). Kit reaproveitado:
 - **Sem recodificação "shadowban-safe"**: não espelhe, não mude velocidade, não adicione ruído
   nem altere o vídeo pra fugir de detecção de conteúdo repetido. Se pedirem, recuse e explique.
 - Não publique sozinho. Entrega é a pasta `saida/`.
+- **Não edite o kit** `~/.claude/skills/editar-reels/kit`. Diferença de comportamento vira
+  adaptador em `$S/scripts/`.
 
-## Passo 0 — conferir o kit (primeira vez, ou se `kit.json` tiver `"_verificado": false`)
+## O que roda onde
 
-1. Confirme que existem `$CORTES_KIT/transcreve.py`, `caps3.py`, `recorte.swift`, `base.py`.
-2. Leia o cabeçalho de cada um e rode `--help` quando houver.
-3. Ajuste os modelos em `$S/kit.json` pra linha de comando real. Campos disponíveis:
-   `{kit}` `{entrada}` `{saida}` `{palavras}` `{posicao_y}`.
-   - `transcreve`: vídeo → JSON com tempo por palavra (`{saida}`).
-   - `recorte`: trecho horizontal → vertical 9:16 seguindo o rosto.
-   - `legenda`: vertical + `{palavras}` → vídeo com legenda em caixa.
-     `{palavras}` é JSON `[{"w","s","e"}]` com tempo relativo ao início do corte.
-     Se o `caps3.py` esperar outro formato, escreva um adaptador pequeno em `$S/scripts/`
-     em vez de mudar o kit.
-4. Troque `"_verificado"` pra `true`.
+| Etapa | Script | Depende de |
+|-------|--------|------------|
+| Transcrição | `scripts/transcreve.py` (mlx whisper-large-v3-turbo, tempo por palavra, sem `initial_prompt`) | `~/.cache/editar-reels-venv/bin/python` (`CORTES_PY`) |
+| Rosto | `scripts/rosto.swift` (Vision, a cada 0,5 s) + `scripts/recorte.py` (suaviza x, crop 9:16 via sendcmd) | `swift` (Xcode Command Line Tools), ffmpeg |
+| Legenda | `scripts/legenda.py` → `projeto.json` → kit `caps3.py` → `caps/*.png` → overlay ffmpeg | venv + kit (`CORTES_KIT`) |
+
+O kit não tem `--help`; não tente descobrir argumentos rodando os scripts dele.
+Se o `caps3.py` falhar ou gerar um número de PNGs diferente do número de blocos de legenda,
+o problema está em `montar_projeto()` de `scripts/legenda.py`: leia o `caps3.py` (só leitura),
+ajuste o adaptador e rode `python3 -m unittest discover -s tests` no repositório `cortes`.
 
 ## Passo 1 — baixar e transcrever
 
 ```bash
-python3 $S/scripts/baixa.py "<URL>" $P
+python3 $S/scripts/baixa.py "<URL>" $P            # --idioma en, se não for português
 python3 $S/scripts/frases.py $P/transcricao.json $P
 ```
 

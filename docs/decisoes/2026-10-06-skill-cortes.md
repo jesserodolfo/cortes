@@ -1,6 +1,6 @@
 # 2026-10-06 — Skill /cortes
 
-Status: aceita (implementação inicial; ligação com o kit ainda não verificada no Mac)
+Status: aceita — revisada no mesmo dia (ver "Revisão: ligação real com o kit")
 
 ## Contexto
 
@@ -32,11 +32,11 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
    | # | Etapa | Ferramenta | Saída |
    |---|-------|------------|-------|
    | 1 | Baixar | `yt-dlp` (`scripts/baixa.py`) | `fonte.mp4` |
-   | 2 | Transcrever com tempo por palavra | kit `transcreve.py` | JSON do kit |
+   | 2 | Transcrever com tempo por palavra | `scripts/transcreve.py` (mlx, venv do kit) | `transcricao.json` |
    | 3 | Normalizar e quebrar em frases | `scripts/frases.py` | `palavras.json`, `frases.txt` |
    | 4 | Claude dá nota aos momentos | o próprio Claude, seguindo `rubrica.md` | `notas.json` |
    | 5 | Tabela pra aprovar | `scripts/tabela.py` | `cortes.md` + `cortes.json` |
-   | 6 | Render 9:16 + legenda + export | `scripts/exporta.py` → kit `recorte.swift`, `caps3.py`, `base.py` | `saida/NN-titulo/{reels,shorts,tiktok}/` |
+   | 6 | Render 9:16 + legenda + export | `scripts/exporta.py` → `recorte.py` + `rosto.swift`, `legenda.py` → kit `caps3.py` | `saida/NN-titulo/{reels,shorts,tiktok}/` |
 
 2. **Quem dá a nota é o Claude da sessão**, não uma chamada de API separada. Ele lê
    `frases.txt` (frases numeradas com `[mm:ss]`) e devolve intervalos por **índice de
@@ -60,19 +60,9 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
 4. **Aprovação humana obrigatória.** Nada é renderizado antes de eu responder com os
    números aprovados (ex.: `1, 3, 4`). Dá pra ajustar início/fim por frase na resposta.
 
-5. **Reaproveitar o kit `~/.claude/skills/editar-reels/kit/`** em vez de reescrever:
-   `transcreve.py` (transcrição com tempo por palavra), `recorte.swift` (seguir o rosto em
-   9:16, Vision no macOS), `caps3.py` (legenda em caixa), `base.py` (utilitários).
-   - A skill **não copia** o kit; chama pelo caminho (`CORTES_KIT`, padrão
-     `~/.claude/skills/editar-reels/kit`).
-   - As linhas de comando de cada script do kit ficam em `kit.json` como modelos
-     (`{entrada}`, `{saida}`, `{palavras}`…). **O kit não estava disponível no ambiente
-     onde a skill foi escrita**, então os modelos padrão são palpites. Na primeira
-     execução no Mac a skill lê o `--help` e o cabeçalho de cada script e corrige o
-     `kit.json`. Isso está escrito no SKILL.md como passo 0.
-   - O formato da transcrição também é desconhecido; `frases.py` aceita as formas
-     comuns (Whisper/faster-whisper/WhisperX `segments[].words[]`, lista plana de
-     `{word,start,end}`, ou `{w,s,e}`).
+5. **Reaproveitar o kit `~/.claude/skills/editar-reels/kit/` sem editá-lo.** Onde o kit
+   não serve como está, a skill tem um adaptador próprio em `skill/cortes/scripts/`
+   (detalhes na revisão abaixo).
 
 6. **Sem recodificação "shadowban-safe".** Não vamos mexer em fingerprint, espelhar,
    alterar velocidade, inserir ruído nem "reescrever" o corte pra enganar detecção de
@@ -86,8 +76,7 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
    - 1080×1920, 30 fps, H.264 High, `yuv420p`, CRF 18, AAC 48 kHz 192 kbps,
      `+faststart`, loudness normalizada em −14 LUFS.
    - Duração ≤ 90 s cabe em Reels, Shorts e TikTok.
-   - Legenda dentro da zona segura (fora dos 20% de baixo e da coluna de botões à
-     direita do TikTok); a posição vertical é passada pro `caps3.py`.
+   - Legenda na posição do kit (`cy=1560`, centro da caixa a 81% da altura).
    - Não publica sozinho. Publicação automática (ex.: Zernio) fica pra depois.
 
 ## Fora do escopo agora
@@ -96,6 +85,31 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
 - B-roll, zoom dinâmico, emojis, música.
 - Mais de um falante em tela dividida (o `recorte.swift` decide o rosto).
 
+## Revisão: ligação real com o kit
+
+A primeira versão foi escrita na nuvem, sem acesso ao kit, e chamava os scripts dele com
+argumentos inventados (`kit.json`). Pelo que o Jessé conferiu no Mac, o kit funciona assim:
+
+| Script do kit | Como é de verdade | O que a skill faz |
+|---------------|-------------------|-------------------|
+| `transcreve.py` | Só roda com `~/.cache/editar-reels-venv/bin/python`; `initial_prompt` fixo com vocabulário do canal ("Claude Code, Opus…") | `scripts/transcreve.py` próprio: mlx `whisper-large-v3-turbo`, `word_timestamps=True`, **sem** `initial_prompt`, `condition_on_previous_text=False` (episódio longo), roda com o python do venv |
+| `recorte.swift` | **Não segue rosto**; só gera máscara de pessoa | `scripts/rosto.swift` (Vision `VNDetectFaceRectanglesRequest` a cada 0,5 s) + `scripts/recorte.py` (escolhe o rosto, suaviza o x, crop 9:16 com ffmpeg via `sendcmd`) |
+| `caps3.py` | Não aceita argumentos: lê `projeto.json` do diretório atual, grava `caps/*.png` (caixa em `cy=1560`); o overlay é feito pelo `final.py` | `scripts/legenda.py`: agrupa as palavras em blocos, monta `projeto.json` num diretório temporário, roda `caps3.py` lá com o python do venv e sobrepõe os PNGs com `overlay`+`enable=between` |
+| — | ffmpeg do Homebrew sem libass/drawtext | Legenda só por PNG + `overlay`; nada de `subtitles`/`drawtext` |
+
+`kit.json` foi removido; os caminhos ficam em `scripts/comum.py` (`CORTES_KIT`, `CORTES_PY`).
+
+Regras do recorte seguindo o rosto:
+- Um rosto por amostra: o maior, mas fica no atual se ele tiver ≥ 60% da largura do maior
+  (não pula entre duas pessoas no plano aberto).
+- Sem rosto: mantém o último x; nunca houve rosto: centro.
+- x pula > 25% da largura entre amostras = troca de câmera: corte seco, sem panorâmica.
+- Dentro do plano: média móvel ±1,5 s + zona morta de 3% da largura.
+
+Ainda **não conferido**: o formato exato do `projeto.json` que o `caps3.py` espera
+(`montar_projeto()` em `legenda.py` é uma suposição) e a compilação do `rosto.swift`.
+O `legenda.py` para com erro claro se o número de PNGs não bater com o de blocos.
+
 ## Teste piloto
 
 Link de um podcast com permissão pra cortar: **pendente** — o pedido veio com o
@@ -103,7 +117,8 @@ marcador `<link de um podcast com permissão pra cortar>` em vez do link. Além 
 o ambiente de nuvem onde a skill foi escrita não tem o kit nem acesso ao YouTube, então o
 piloto roda no Mac. Critérios de aceite do piloto:
 
-- [ ] `kit.json` corrigido a partir do `--help` real do kit.
+- [ ] `rosto.swift` compila e acha rosto no episódio.
+- [ ] `caps3.py` aceita o `projeto.json` montado por `legenda.py` (1 PNG por bloco).
 - [ ] Tabela com até 10 cortes, todos entre 30 e 90 s, nenhum começando no meio de palavra.
 - [ ] Pelo menos 3 cortes aprovados renderizados com rosto enquadrado e legenda legível.
 - [ ] Os três arquivos sobem sem reprocessamento no Reels, Shorts e TikTok.
