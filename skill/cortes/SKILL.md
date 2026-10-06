@@ -1,6 +1,6 @@
 ---
 name: cortes
-description: Transforma um episódio longo (link do YouTube, podcast em vídeo ou TikTok) em cortes verticais 9:16 com legenda em caixa pra Reels, Shorts e TikTok. Baixa com yt-dlp, transcreve com tempo por palavra, dá nota a cada momento (gancho, autonomia, desfecho, ritmo; 30 a 90 s), mostra uma tabela pra aprovar e só então renderiza seguindo o rosto. Use quando o usuário digitar /cortes, colar um link pedindo cortes, ou falar em "cortar podcast", "tirar cortes", "clips do episódio".
+description: Transforma um episódio longo (link do YouTube, podcast em vídeo ou TikTok) em cortes verticais 9:16 com legenda em caixa pra YouTube Shorts e Facebook (com réplica pra Instagram e TikTok). Baixa com yt-dlp, transcreve com tempo por palavra, dá nota a cada momento (gancho, autonomia, desfecho, ritmo; 30 a 90 s), mostra uma tabela pra aprovar e só então renderiza seguindo o rosto. Use quando o usuário digitar /cortes, colar um link pedindo cortes, ou falar em "cortar podcast", "tirar cortes", "clips do episódio".
 ---
 
 # /cortes
@@ -69,7 +69,8 @@ python3 $S/scripts/exporta.py $P --aprovados 1,3,4
 ```
 
 Saída por corte em `$P/saida/NN-titulo/`:
-`final.mp4` + `reels/`, `shorts/`, `tiktok/` (cada uma com o `.mp4` e `legenda.txt`).
+`final.mp4` + `shorts/` e `facebook/` (destinos principais) e `instagram/`, `tiktok/` (réplica do
+mesmo arquivo), cada uma com o `.mp4` e `legenda.txt`.
 Extraia um quadro do meio de cada `final.mp4` (`ffmpeg -ss <meio> -i final.mp4 -frames:v 1 quadro.jpg`)
 e olhe: rosto enquadrado? legenda legível e fora da área dos botões? Se não, diga qual
 e o que ajustar antes de entregar.

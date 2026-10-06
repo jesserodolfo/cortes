@@ -86,7 +86,7 @@ class TestExporta(unittest.TestCase):
     def test_texto_post(self):
         c = {"titulo": "T" * 120, "descricao": "d", "hashtags": ["#a"]}
         self.assertLessEqual(len(exporta.texto_post(c, "shorts")), 100)
-        self.assertIn("#a", exporta.texto_post(c, "reels"))
+        self.assertIn("#a", exporta.texto_post(c, "facebook"))
 
     def test_palavras_relativas(self):
         pal = [{"w": "a", "s": 9.0, "e": 9.5}, {"w": "b", "s": 10.2, "e": 10.6}, {"w": "c", "s": 50, "e": 51}]
@@ -112,7 +112,7 @@ class TestExporta(unittest.TestCase):
                  "-of", "json", str(out / "final.mp4")], capture_output=True, text=True, check=True).stdout)
             self.assertEqual((info["streams"][0]["width"], info["streams"][0]["height"]), (1080, 1920))
             self.assertTrue(30 <= float(info["format"]["duration"]) <= 90)
-            for plat in ("reels", "shorts", "tiktok"):
+            for plat in ("shorts", "facebook", "instagram", "tiktok"):
                 self.assertTrue((out / plat / "teste-acao.mp4").exists())
                 self.assertTrue((out / plat / "legenda.txt").read_text().startswith("Teste Ação"))
 

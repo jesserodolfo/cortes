@@ -5,7 +5,7 @@ Status: aceita — revisada no mesmo dia (ver "Revisão: ligação real com o ki
 ## Contexto
 
 Quero transformar episódios longos (YouTube, podcast, TikTok) em cortes verticais
-prontos pra Reels, Shorts e TikTok, com o comportamento do miqla.app como referência,
+prontos pra YouTube Shorts e Facebook (replicados no Instagram e no TikTok), com o comportamento do miqla.app como referência,
 mas rodando local, dentro do Claude Code, e com eu aprovando cada corte antes de renderizar.
 
 ### O que o miqla.app faz (engenharia reversa)
@@ -36,7 +36,7 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
    | 3 | Normalizar e quebrar em frases | `scripts/frases.py` | `palavras.json`, `frases.txt` |
    | 4 | Claude dá nota aos momentos | o próprio Claude, seguindo `rubrica.md` | `notas.json` |
    | 5 | Tabela pra aprovar | `scripts/tabela.py` | `cortes.md` + `cortes.json` |
-   | 6 | Render 9:16 + legenda + export | `scripts/exporta.py` → `recorte.py` + `rosto.swift`, `legenda.py` → kit `caps3.py` | `saida/NN-titulo/{reels,shorts,tiktok}/` |
+   | 6 | Render 9:16 + legenda + export | `scripts/exporta.py` → `recorte.py` + `rosto.swift`, `legenda.py` → kit `caps3.py` | `saida/NN-titulo/{shorts,facebook,instagram,tiktok}/` |
 
 2. **Quem dá a nota é o Claude da sessão**, não uma chamada de API separada. Ele lê
    `frases.txt` (frases numeradas com `[mm:ss]`) e devolve intervalos por **índice de
@@ -70,12 +70,13 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
    espectador (enquadramento vertical e legenda). Motivo: o uso previsto é com
    permissão do dono do conteúdo, e esse tipo de recodificação é evasão de detecção.
 
-7. **Export**: as três plataformas aceitam o mesmo arquivo, então há **uma única
+7. **Export**: destinos principais YouTube Shorts e Facebook (Reels); Instagram e TikTok
+   recebem réplica do mesmo arquivo. As quatro redes aceitam o mesmo arquivo, então há **uma única
    codificação final** por corte e uma cópia por plataforma, cada uma com seu
    `legenda.txt` (título/descrição/hashtags com o limite de cada rede):
    - 1080×1920, 30 fps, H.264 High, `yuv420p`, CRF 18, AAC 48 kHz 192 kbps,
      `+faststart`, loudness normalizada em −14 LUFS.
-   - Duração ≤ 90 s cabe em Reels, Shorts e TikTok.
+   - Duração ≤ 90 s cabe nas quatro (Shorts, Reels do Facebook e do Instagram, TikTok).
    - Legenda na posição do kit (`cy=1560`, centro da caixa a 81% da altura).
    - Não publica sozinho. Publicação automática (ex.: Zernio) fica pra depois.
 
@@ -121,4 +122,4 @@ piloto roda no Mac. Critérios de aceite do piloto:
 - [ ] `caps3.py` aceita o `projeto.json` montado por `legenda.py` (1 PNG por bloco).
 - [ ] Tabela com até 10 cortes, todos entre 30 e 90 s, nenhum começando no meio de palavra.
 - [ ] Pelo menos 3 cortes aprovados renderizados com rosto enquadrado e legenda legível.
-- [ ] Os três arquivos sobem sem reprocessamento no Reels, Shorts e TikTok.
+- [ ] O arquivo sobe sem reprocessamento no YouTube Shorts e no Facebook (e na réplica pro Instagram e TikTok).

@@ -8,7 +8,8 @@ Para cada corte aprovado (número da tabela em cortes.md):
   2. recorte.py (+ rosto.swift) -> vertical 9:16 seguindo o rosto
   3. legenda.py (+ kit caps3.py) -> legenda em caixa (palavras com tempo relativo ao corte)
   4. codificação final única (1080x1920, 30 fps, H.264, AAC, -14 LUFS, faststart)
-  5. copia para reels/, shorts/, tiktok/ com o texto de postagem de cada rede
+  5. copia para shorts/, facebook/ (destinos principais) e instagram/, tiktok/ (réplica),
+     cada uma com o texto de postagem da rede
 
 --sem-kit só serve pra testar o encadeamento sem Swift e sem o kit: corte central, sem legenda.
 """
@@ -27,9 +28,10 @@ LARG, ALT, FPS = 1080, 1920, 30
 
 PLATAFORMAS = {
     # nome: (limite de caracteres do texto, hashtags extras)
-    "reels": (2200, []),
-    "shorts": (100, ["#Shorts"]),   # título do Shorts: 100 caracteres
-    "tiktok": (2200, []),
+    "shorts": (100, ["#Shorts"]),   # YouTube Shorts: título de 100 caracteres
+    "facebook": (2200, []),         # Reels do Facebook
+    "instagram": (2200, []),        # réplica
+    "tiktok": (2200, []),           # réplica
 }
 
 
