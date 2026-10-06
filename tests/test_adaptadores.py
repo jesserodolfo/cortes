@@ -1,4 +1,4 @@
-"""Testes dos adaptadores (transcreve, recorte, legenda) sem mlx, Swift ou o kit real."""
+"""Testes dos adaptadores (transcreve, recorte, legenda) sem mlx e sem Swift."""
 import json
 import shutil
 import subprocess
@@ -88,16 +88,6 @@ class TestRecorte(unittest.TestCase):
             self.assertEqual(recorte.sondar(d / "out.mp4")[:2], (1080, 1920))
 
 
-CAPS_FALSO = '''
-import json, pathlib, subprocess
-p = json.load(open("projeto.json"))
-pathlib.Path("caps").mkdir()
-for i, _ in enumerate(p["legendas"]):
-    subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=yellow:s=800x200",
-                    "-frames:v", "1", f"caps/{i:03d}.png"], check=True)
-'''
-
-
 class TestLegenda(unittest.TestCase):
     def test_agrupar(self):
         pal = [{"w": w, "s": i * .3, "e": i * .3 + .25} for i, w in enumerate(
@@ -108,28 +98,30 @@ class TestLegenda(unittest.TestCase):
         self.assertEqual(b[0]["fim"], b[1]["inicio"], "bloco segura até o próximo")
         self.assertLess(b[2]["fim"], b[3]["inicio"], "pausa longa: tela limpa")
 
+    def test_desenhar_caixa(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as d:
+            f = legenda.fonte()
+            curta = Image.open(legenda.desenhar("oi gente", Path(d) / "a.png", f))
+            longa = Image.open(legenda.desenhar("palavra " * 12, Path(d) / "b.png", f))
+            self.assertEqual(curta.getpixel((curta.width // 2, 2))[:3], (255, 255, 255))
+            self.assertEqual(curta.getpixel((0, 0))[3], 0, "canto arredondado transparente")
+            self.assertLessEqual(longa.width, 1080)
+            self.assertGreater(longa.height, curta.height * 1.5, "texto longo quebra em mais linhas")
+
     @unittest.skipUnless(TEM_FFMPEG, "ffmpeg ausente")
-    def test_caps_e_overlay(self):
+    def test_overlay_no_tempo_e_lugar(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
-            (d / "caps3.py").write_text(CAPS_FALSO)
             ff("-f", "lavfi", "-i", "color=black:s=1080x1920:d=4:r=30", "-pix_fmt", "yuv420p", d / "v.mp4")
             pal = [{"w": "oi", "s": 0.5, "e": 1.0}, {"w": "gente.", "s": 1.1, "e": 1.5},
                    {"w": "tchau.", "s": 3.0, "e": 3.4}]
             (d / "p.json").write_text(json.dumps(pal))
-            with mock.patch.object(legenda, "KIT", d), mock.patch.object(legenda, "VENV_PY", Path(sys.executable)):
-                legenda.legendar(d / "v.mp4", d / "p.json", d / "out.mp4")
-            self.assertGreater(cor_em(d / "out.mp4", 1.2, 540, 1560)[0], 200)  # caixa em cy=1560
-            self.assertLess(cor_em(d / "out.mp4", 2.5, 540, 1560)[0], 30)      # pausa: sem legenda
-            self.assertLess(cor_em(d / "out.mp4", 1.2, 540, 1300)[0], 30)      # caixa não vaza pra cima
-
-    def test_numero_de_pngs_errado_para(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / "caps3.py").write_text("import pathlib; pathlib.Path('caps').mkdir()")
-            with mock.patch.object(legenda, "KIT", d), mock.patch.object(legenda, "VENV_PY", Path(sys.executable)):
-                with self.assertRaises(SystemExit):
-                    legenda.gerar_pngs([{"texto": "a", "inicio": 0, "fim": 1}], d)
+            legenda.legendar(d / "v.mp4", d / "p.json", d / "out.mp4")
+            cy = legenda.CY
+            self.assertGreater(cor_em(d / "out.mp4", 1.2, 520, cy - 50)[0], 200)  # caixa branca em cy
+            self.assertLess(cor_em(d / "out.mp4", 2.5, 520, cy - 50)[0], 30)      # pausa: sem legenda
+            self.assertLess(cor_em(d / "out.mp4", 1.2, 520, cy - 200)[0], 30)     # caixa não vaza pra cima
 
 
 if __name__ == "__main__":

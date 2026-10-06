@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Legenda em caixa com o caps3.py do kit, sobreposta com ffmpeg (sem libass/drawtext).
+"""Legenda em caixa desenhada pela própria skill (Pillow) e sobreposta com ffmpeg.
 
 Uso: legenda.py ENTRADA_VERTICAL PALAVRAS.json SAIDA
 
-O caps3.py do kit não aceita argumentos: lê projeto.json do diretório atual e grava
-caps/*.png (caixa centrada em cy=1560). Então este adaptador:
+Não depende do kit nem de libass/drawtext (o ffmpeg do Homebrew não tem):
   1. agrupa as palavras do corte em blocos curtos (1 bloco = 1 PNG);
-  2. monta projeto.json num diretório temporário e roda o caps3.py lá, com o python do venv;
+  2. desenha cada bloco como caixa branca arredondada com texto preto em negrito;
   3. sobrepõe cada PNG no intervalo do seu bloco (overlay com enable=between).
-
-ATENÇÃO: o formato de projeto.json em montar_projeto() ainda não foi conferido com o
-caps3.py real (escrito sem acesso ao kit). Se o caps3.py reclamar ou gerar um número de
-PNGs diferente do número de blocos, ajuste montar_projeto() e a ordem em ler_pngs().
+Precisa de Pillow no python que roda o script (`python3 -m pip install --user pillow`).
+Fonte: CORTES_FONTE, ou a primeira que existir em FONTES.
 """
 import argparse
 import os
@@ -20,14 +17,24 @@ import sys
 import tempfile
 from pathlib import Path
 
-from comum import KIT, VENV_PY, gravar_json, ler_json, rodar
+from comum import ler_json, rodar
 
-ALT, CY = 1920, 1560          # cy usado pelo caps3.py do kit
+LARG = 1080
+CY = 1250                     # centro da caixa: 65% da altura, acima da UI de baixo das redes
 MAX_PALAVRAS, MAX_CHARS = 3, 20
 PAUSA_QUEBRA = 0.35           # s de silêncio que fecha um bloco
 SEGURA = 0.5                  # bloco fica na tela até o próximo se o buraco for menor que isso
-# scripts do kit rodados em ordem no diretório do projeto (ex.: CORTES_CAPS="caps2.py caps3.py")
-CAPS = os.environ.get("CORTES_CAPS", "caps3.py").split()
+
+TAMANHO = 72                  # px da fonte
+LARG_MAX = 900                # largura máxima do texto antes de quebrar linha
+PAD_X, PAD_Y, RAIO = 36, 22, 26
+ENTRELINHA = 1.15
+COR_CAIXA, COR_TEXTO = (255, 255, 255, 255), (0, 0, 0, 255)
+FONTES = [
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",   # macOS
+    "/Library/Fonts/Arial Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux (testes)
+]
 
 
 def agrupar(palavras):
@@ -48,34 +55,54 @@ def agrupar(palavras):
     return [{**b, "inicio": round(b["inicio"], 3), "fim": round(b["fim"], 3)} for b in blocos]
 
 
-def montar_projeto(blocos):
-    """projeto.json pro caps3.py. FORMATO SUPOSTO — conferir com o kit."""
-    return {"legendas": [{"texto": b["texto"], "inicio": b["inicio"], "fim": b["fim"]} for b in blocos]}
+def fonte():
+    from PIL import ImageFont
+    candidatas = [os.environ["CORTES_FONTE"]] if os.environ.get("CORTES_FONTE") else FONTES
+    for f in candidatas:
+        if Path(f).exists():
+            return ImageFont.truetype(f, TAMANHO)
+    sys.exit(f"Nenhuma fonte encontrada em {candidatas}; defina CORTES_FONTE.")
 
 
-def ler_pngs(pasta):
-    return sorted((pasta / "caps").glob("*.png"))
+def quebrar_linhas(texto, f):
+    linhas = [""]
+    for palavra in texto.split():
+        teste = (linhas[-1] + " " + palavra).strip()
+        if f.getlength(teste) <= LARG_MAX or not linhas[-1]:
+            linhas[-1] = teste
+        else:
+            linhas.append(palavra)
+    return linhas
+
+
+def desenhar(texto, saida, f):
+    from PIL import Image, ImageDraw
+    linhas = quebrar_linhas(texto, f)
+    sobe, desce = f.getmetrics()
+    alt_linha = round((sobe + desce) * ENTRELINHA)
+    larg_txt = max(f.getlength(l) for l in linhas)
+    w = min(LARG, round(larg_txt) + 2 * PAD_X)
+    h = alt_linha * len(linhas) - (alt_linha - sobe - desce) + 2 * PAD_Y
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([0, 0, w - 1, h - 1], radius=RAIO, fill=COR_CAIXA)
+    for i, linha in enumerate(linhas):
+        d.text((w / 2, PAD_Y + i * alt_linha), linha, font=f, fill=COR_TEXTO, anchor="ma")
+    img.save(saida)
+    return saida
 
 
 def gerar_pngs(blocos, tmp):
-    gravar_json(tmp / "projeto.json", montar_projeto(blocos))
-    for script in CAPS:
-        rodar([VENV_PY, KIT / script], cwd=tmp)
-    pngs = ler_pngs(tmp)
-    if len(pngs) != len(blocos):
-        sys.exit(f"caps3.py gerou {len(pngs)} PNGs para {len(blocos)} blocos de legenda; "
-                 "conferir montar_projeto() em legenda.py contra o formato real do projeto.json.")
-    return pngs
+    f = fonte()
+    return [desenhar(b["texto"], tmp / f"{k:04d}.png", f) for k, b in enumerate(blocos)]
 
 
 def filtro_overlay(blocos):
-    """PNG em tela cheia (altura 1920) vai em 0,0; caixa menor é centrada em x e em cy=1560."""
     partes, anterior = [], "0:v"
     for k, b in enumerate(blocos, 1):
         saida = f"v{k}"
         partes.append(
-            f"[{anterior}][{k}:v]overlay=x=(main_w-overlay_w)/2:"
-            f"y='if(eq(overlay_h,main_h),0,{CY}-overlay_h/2)':"
+            f"[{anterior}][{k}:v]overlay=x=(main_w-overlay_w)/2:y={CY}-overlay_h/2:"
             f"enable='between(t,{b['inicio']},{b['fim']})'[{saida}]")
         anterior = saida
     return ";".join(partes), f"[{anterior}]"
@@ -97,8 +124,7 @@ def legendar(entrada, palavras_json, saida):
         shutil.copy2(entrada, saida)
         return saida
     with tempfile.TemporaryDirectory() as d:
-        tmp = Path(d)
-        sobrepor(Path(entrada).resolve(), gerar_pngs(blocos, tmp), blocos, Path(saida).resolve())
+        sobrepor(Path(entrada).resolve(), gerar_pngs(blocos, Path(d)), blocos, Path(saida).resolve())
     return saida
 
 

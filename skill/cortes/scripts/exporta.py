@@ -6,12 +6,12 @@ Uso: exporta.py PASTA --aprovados 1,3,4 [--sem-kit]
 Para cada corte aprovado (número da tabela em cortes.md):
   1. recorta o trecho da fonte (re-encode, corte exato no tempo da palavra)
   2. recorte.py (+ rosto.swift) -> vertical 9:16 seguindo o rosto
-  3. legenda.py (+ kit caps3.py) -> legenda em caixa (palavras com tempo relativo ao corte)
+  3. legenda.py (Pillow)        -> legenda em caixa (palavras com tempo relativo ao corte)
   4. codificação final única (1080x1920, 30 fps, H.264, AAC, -14 LUFS, faststart)
   5. copia para shorts/, facebook/ (destinos principais) e instagram/, tiktok/ (réplica),
      cada uma com o texto de postagem da rede
 
---sem-kit só serve pra testar o encadeamento sem Swift e sem o kit: corte central, sem legenda.
+--sem-kit só serve pra testar o encadeamento sem Swift: corte central, sem legenda.
 """
 import argparse
 import re

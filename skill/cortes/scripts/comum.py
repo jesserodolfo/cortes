@@ -7,9 +7,7 @@ import sys
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
-# Kit editar-reels: só leitura. A skill chama caps3.py dele; nada é editado lá.
-KIT = Path(os.environ.get("CORTES_KIT", "~/.claude/skills/editar-reels/kit")).expanduser()
-# Python do venv do kit (tem mlx_whisper e as dependências do caps3.py).
+# Python do venv do kit editar-reels (tem mlx_whisper); só a transcrição usa.
 VENV_PY = Path(os.environ.get("CORTES_PY", "~/.cache/editar-reels-venv/bin/python")).expanduser()
 
 

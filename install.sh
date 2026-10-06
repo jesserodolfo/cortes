@@ -16,5 +16,4 @@ if [ -x "$py" ]; then
 else
   echo "falta: python do venv do kit ($py)"
 fi
-kit="${CORTES_KIT:-$HOME/.claude/skills/editar-reels/kit}"
-[ -f "$kit/caps3.py" ] || echo "falta no kit: $kit/caps3.py"
+python3 -c "import PIL" 2>/dev/null || echo "falta: Pillow (python3 -m pip install --user pillow)"

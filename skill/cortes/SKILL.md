@@ -27,12 +27,12 @@ Pasta da skill: `~/.claude/skills/cortes` (abaixo, `$S`). Trabalho de cada epis�
 |-------|--------|------------|
 | Transcrição | `scripts/transcreve.py` (mlx whisper-large-v3-turbo, tempo por palavra, sem `initial_prompt`) | `~/.cache/editar-reels-venv/bin/python` (`CORTES_PY`) |
 | Rosto | `scripts/rosto.swift` (Vision, a cada 0,5 s) + `scripts/recorte.py` (suaviza x, crop 9:16 via sendcmd) | `swift` (Xcode Command Line Tools), ffmpeg |
-| Legenda | `scripts/legenda.py` → `projeto.json` → kit `caps3.py` → `caps/*.png` → overlay ffmpeg | venv + kit (`CORTES_KIT`) |
+| Legenda | `scripts/legenda.py`: desenha cada bloco como caixa branca com texto preto (Pillow) e sobrepõe com overlay do ffmpeg | Pillow (`CORTES_FONTE` troca a fonte; padrão Arial Bold) |
 
 O kit não tem `--help`; não tente descobrir argumentos rodando os scripts dele.
-Se o `caps3.py` falhar ou gerar um número de PNGs diferente do número de blocos de legenda,
-o problema está em `montar_projeto()` de `scripts/legenda.py`: leia o `caps3.py` (só leitura),
-ajuste o adaptador e rode `python3 -m unittest discover -s tests` no repositório `cortes`.
+A legenda não usa o kit. Visual (tamanho, cores, posição `CY`) fica nas constantes do topo de
+`scripts/legenda.py`; depois de mexer, rode `python3 -m unittest discover -s tests` no repositório `cortes`.
+Se der `No module named 'PIL'`, rode `python3 -m pip install --user pillow`.
 
 ## Passo 1 — baixar e transcrever
 

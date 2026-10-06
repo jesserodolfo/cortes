@@ -36,7 +36,7 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
    | 3 | Normalizar e quebrar em frases | `scripts/frases.py` | `palavras.json`, `frases.txt` |
    | 4 | Claude dá nota aos momentos | o próprio Claude, seguindo `rubrica.md` | `notas.json` |
    | 5 | Tabela pra aprovar | `scripts/tabela.py` | `cortes.md` + `cortes.json` |
-   | 6 | Render 9:16 + legenda + export | `scripts/exporta.py` → `recorte.py` + `rosto.swift`, `legenda.py` → kit `caps3.py` | `saida/NN-titulo/{shorts,facebook,instagram,tiktok}/` |
+   | 6 | Render 9:16 + legenda + export | `scripts/exporta.py` → `recorte.py` + `rosto.swift`, `legenda.py` (Pillow) | `saida/NN-titulo/{shorts,facebook,instagram,tiktok}/` |
 
 2. **Quem dá a nota é o Claude da sessão**, não uma chamada de API separada. Ele lê
    `frases.txt` (frases numeradas com `[mm:ss]`) e devolve intervalos por **índice de
@@ -77,7 +77,7 @@ Fontes: [miqla.app](https://miqla.app/), [miqla.app/privacy](https://miqla.app/p
    - 1080×1920, 30 fps, H.264 High, `yuv420p`, CRF 18, AAC 48 kHz 192 kbps,
      `+faststart`, loudness normalizada em −14 LUFS.
    - Duração ≤ 90 s cabe nas quatro (Shorts, Reels do Facebook e do Instagram, TikTok).
-   - Legenda na posição do kit (`cy=1560`, centro da caixa a 81% da altura).
+   - Legenda com centro em `CY=1250` (65% da altura), acima da área de botões e descrição das redes.
    - Não publica sozinho. Publicação automática (ex.: Zernio) fica pra depois.
 
 ## Fora do escopo agora
@@ -95,10 +95,10 @@ argumentos inventados (`kit.json`). Pelo que o Jessé conferiu no Mac, o kit fun
 |---------------|-------------------|-------------------|
 | `transcreve.py` | Só roda com `~/.cache/editar-reels-venv/bin/python`; `initial_prompt` fixo com vocabulário do canal ("Claude Code, Opus…") | `scripts/transcreve.py` próprio: mlx `whisper-large-v3-turbo`, `word_timestamps=True`, **sem** `initial_prompt`, `condition_on_previous_text=False` (episódio longo), roda com o python do venv |
 | `recorte.swift` | **Não segue rosto**; só gera máscara de pessoa | `scripts/rosto.swift` (Vision `VNDetectFaceRectanglesRequest` a cada 0,5 s) + `scripts/recorte.py` (escolhe o rosto, suaviza o x, crop 9:16 com ffmpeg via `sendcmd`) |
-| `caps3.py` | Não aceita argumentos: lê `projeto.json` do diretório atual, grava `caps/*.png` (caixa em `cy=1560`); o overlay é feito pelo `final.py` | `scripts/legenda.py`: agrupa as palavras em blocos, monta `projeto.json` num diretório temporário, roda `caps3.py` lá com o python do venv e sobrepõe os PNGs com `overlay`+`enable=between` |
+| `caps3.py` | Não aceita argumentos: lê `projeto.json` do diretório atual, grava `caps/*.png` (caixa em `cy=1560`); o overlay é feito pelo `final.py` | **Não é usado.** O formato do `projeto.json` não pôde ser conferido, então `scripts/legenda.py` desenha a própria caixa (Pillow: branca, arredondada, texto preto em negrito) e sobrepõe com `overlay`+`enable=between` |
 | — | ffmpeg do Homebrew sem libass/drawtext | Legenda só por PNG + `overlay`; nada de `subtitles`/`drawtext` |
 
-`kit.json` foi removido; os caminhos ficam em `scripts/comum.py` (`CORTES_KIT`, `CORTES_PY`).
+`kit.json` foi removido. Do kit, a skill só usa o venv `~/.cache/editar-reels-venv` (mlx_whisper), em `scripts/comum.py` (`CORTES_PY`).
 
 Regras do recorte seguindo o rosto:
 - Um rosto por amostra: o maior, mas fica no atual se ele tiver ≥ 60% da largura do maior
@@ -107,9 +107,7 @@ Regras do recorte seguindo o rosto:
 - x pula > 25% da largura entre amostras = troca de câmera: corte seco, sem panorâmica.
 - Dentro do plano: média móvel ±1,5 s + zona morta de 3% da largura.
 
-Ainda **não conferido**: o formato exato do `projeto.json` que o `caps3.py` espera
-(`montar_projeto()` em `legenda.py` é uma suposição) e a compilação do `rosto.swift`.
-O `legenda.py` para com erro claro se o número de PNGs não bater com o de blocos.
+Ainda **não conferido** no Mac: a compilação do `rosto.swift` e a fonte Arial Bold do sistema.
 
 ## Teste piloto
 
@@ -119,7 +117,7 @@ o ambiente de nuvem onde a skill foi escrita não tem o kit nem acesso ao YouTub
 piloto roda no Mac. Critérios de aceite do piloto:
 
 - [ ] `rosto.swift` compila e acha rosto no episódio.
-- [ ] `caps3.py` aceita o `projeto.json` montado por `legenda.py` (1 PNG por bloco).
+- [ ] Legenda legível e acima da área de botões no Shorts e no Facebook.
 - [ ] Tabela com até 10 cortes, todos entre 30 e 90 s, nenhum começando no meio de palavra.
 - [ ] Pelo menos 3 cortes aprovados renderizados com rosto enquadrado e legenda legível.
 - [ ] O arquivo sobe sem reprocessamento no YouTube Shorts e no Facebook (e na réplica pro Instagram e TikTok).

@@ -15,7 +15,7 @@ brew install yt-dlp ffmpeg
 ```
 
 Depois, no Claude Code: `/cortes <link>`. Usa o venv `~/.cache/editar-reels-venv`
-(mlx_whisper) e o `caps3.py` do kit `~/.claude/skills/editar-reels/kit`, sem editar o kit.
+(mlx_whisper) do kit editar-reels pra transcrever; a legenda é desenhada pela própria skill (Pillow).
 O `install.sh` avisa o que faltar.
 
 ## Testes
