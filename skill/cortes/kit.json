@@ -1,0 +1,7 @@
+{
+  "_verificado": false,
+  "_nota": "Modelos de linha de comando dos scripts do kit editar-reels. Campos: {kit} {entrada} {saida} {palavras} {posicao_y}. Na primeira execução no Mac, conferir o --help de cada script e corrigir; depois trocar _verificado para true.",
+  "transcreve": "python3 {kit}/transcreve.py {entrada} {saida}",
+  "recorte": "swift {kit}/recorte.swift {entrada} {saida}",
+  "legenda": "python3 {kit}/caps3.py {entrada} {palavras} {saida}"
+}
