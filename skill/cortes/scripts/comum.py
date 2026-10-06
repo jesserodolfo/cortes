@@ -7,7 +7,10 @@ import sys
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
-KIT_PADRAO = Path(os.environ.get("CORTES_KIT", "~/.claude/skills/editar-reels/kit")).expanduser()
+# Kit editar-reels: só leitura. A skill chama caps3.py dele; nada é editado lá.
+KIT = Path(os.environ.get("CORTES_KIT", "~/.claude/skills/editar-reels/kit")).expanduser()
+# Python do venv do kit (tem mlx_whisper e as dependências do caps3.py).
+VENV_PY = Path(os.environ.get("CORTES_PY", "~/.cache/editar-reels-venv/bin/python")).expanduser()
 
 
 def ler_json(caminho):
@@ -30,16 +33,3 @@ def rodar(cmd, **kw):
     print("+ " + " ".join(shlex.quote(str(c)) for c in cmd), file=sys.stderr)
     subprocess.run([str(c) for c in cmd], check=True, **kw)
 
-
-def comando_kit(nome, kit_json=None, **valores):
-    """Monta a linha de comando de um script do kit a partir do modelo em kit.json.
-
-    O modelo é quebrado com shlex antes de substituir os campos, então caminhos com
-    espaço não quebram o comando.
-    """
-    cfg = ler_json(kit_json or SKILL_DIR / "kit.json")
-    modelo = cfg.get(nome)
-    if not modelo:
-        sys.exit(f"kit.json não tem o comando '{nome}'")
-    valores.setdefault("kit", str(KIT_PADRAO))
-    return [parte.format(**valores) for parte in shlex.split(modelo)]

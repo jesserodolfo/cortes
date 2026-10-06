@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Etapa 1: baixa o vídeo com yt-dlp e transcreve com o kit.
+"""Etapa 1: baixa o vídeo com yt-dlp e transcreve (scripts/transcreve.py no venv do kit).
 
-Uso: baixa.py URL PASTA [--sem-transcricao]
+Uso: baixa.py URL PASTA [--idioma pt] [--sem-transcricao]
 Saídas em PASTA: fonte.mp4, fonte.info.json, transcricao.json
 """
 import argparse
@@ -11,7 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from comum import comando_kit, rodar
+from comum import VENV_PY, rodar
 
 
 def tem_video(arquivo):
@@ -26,6 +26,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("url")
     ap.add_argument("pasta", type=Path)
+    ap.add_argument("--idioma", default="pt")
     ap.add_argument("--sem-transcricao", action="store_true")
     a = ap.parse_args()
 
@@ -44,7 +45,10 @@ def main():
     if not a.sem_transcricao:
         saida = a.pasta / "transcricao.json"
         if not saida.exists():
-            rodar(comando_kit("transcreve", entrada=fonte, saida=saida, palavras="", posicao_y=""))
+            if not VENV_PY.exists():
+                sys.exit(f"Python do venv não encontrado: {VENV_PY} (defina CORTES_PY)")
+            rodar([VENV_PY, Path(__file__).with_name("transcreve.py"), fonte, saida,
+                   "--idioma", a.idioma])
     print(fonte)
 
 
