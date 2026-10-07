@@ -14,7 +14,8 @@ Tentei chegar nos cortes virais pelo ambiente de nuvem e esbarrei nisto:
 | Instagram: reel por link direto | **Funciona** com `yt-dlp` (baixa o vídeo, legenda do post, likes e comentários). Depois de vários testes o IP tomou 429 temporário. |
 | YouTube Shorts | Bloqueado pelo proxy. A assinatura do Algrow (ferramenta de YouTube) está pausada, código 402. |
 | Buscadores (Google, Bing, DDG) e portais de notícia | Bloqueados pelo proxy. A busca interna do assistente não indexa links de reels. |
-| Zernio (sua conta conectada) | Só mostra os seus posts. Não tem busca nem feed. |
+| Zernio (conector) | Tem consulta pública de contas Business/Creator do Instagram (perfil + até 25 mídias recentes com likes e comentários). Recusou: sua conta @jesse.rodolfo está conectada pelo login do Instagram, e essa consulta exige conexão via **Login do Facebook**. |
+| Algrow (conector) | Tem busca de virais e análise de vídeo do Instagram e TikTok. Todas as chamadas voltam 402: assinatura pausada. |
 
 O que ficou pronto: `skill/cortes/scripts/estuda.py`. Recebe uma lista de links, baixa, transcreve
 com tempo por frase, detecta trocas de plano e tira quadros (abertura em 1 fps, folha de contato,
@@ -22,6 +23,8 @@ meio e fim). Com os links na mão, a análise de 15 a 20 cortes leva menos de um
 
 ## Como destravar (escolha uma)
 
+0. **Reconectar o Instagram no Zernio pelo Facebook.** No painel do Zernio, desconecte @jesse.rodolfo e conecte de novo escolhendo a opção Facebook. Com isso eu listo as mídias recentes de perfis de cortes (ex.: @ticaracaticastcortes), ordeno por engajamento, pego os links e assisto cada um com `estuda.py`. Cobre só Instagram e só contas Business/Creator.
+0. **Reativar o Algrow.** Libera busca de virais e análise de vídeo, inclusive TikTok.
 1. **Me mande os links.** Abra o Instagram e o TikTok no celular, copie o link de 15 a 20 cortes
    de podcast que viralizaram (compartilhar > copiar link) e cole aqui, um por linha. Instagram eu
    assisto daqui; TikTok só se for na opção 2.
